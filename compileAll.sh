@@ -12,10 +12,13 @@ if [ ! -d "$ROOTDIR" ] ; then
 fi
 
 dir=`dirname $0`
+if [ -z "$NODE_BIN" ] ; then
+  NODE_BIN=node
+fi
 
-node $dir/transpilerServer &
+$NODE_BIN $dir/transpilerServer &
 NODETS=$!
-node $dir/handlebarsServer &
+$NODE_BIN $dir/handlebarsServer &
 NODEHB=$!
 sleep 1
 
@@ -23,10 +26,20 @@ cd $ROOTDIR
 # rm -rf dist
 # mkdir dist
 
-cp index.html dist
+cp index.html unicornSandbox.html dist
 cp -r vendor dist
 
 compileOne() {
+  DIST=`pwd`/dist
+  if [ $# -ge 2 ] ; then
+    if [ ! -d "$2" ] ; then
+      echo "There is no directory $2"
+      return
+    fi
+    cd "$2"
+    DIST="$DIST/$2"
+  fi
+
   if [ ! -d "$1" ] ; then
     echo "There is no directory $1"
     return
@@ -44,7 +57,7 @@ compileOne() {
       curl -s "-HX-Module-Name:$1/$mn" --data-binary "@$f" localhost:10062
       echo ""
     done
-  ) > dist/`basename $1`-amd.js
+  ) > $DIST/`basename $1`-amd.js
 }
 
 compile() {
@@ -53,7 +66,10 @@ compile() {
   done
 }
 
+(compileOne unicornlib vendor)
 compile \
+  archetypes \
+  contract \
   container \
   unicorn/receipt/whotels/expense/member
 
