@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 if [ $# -lt 1 ] ; then
   echo "Usage: compileAll.sh <rootdir>" >&2
@@ -24,7 +24,9 @@ sleep 1
 
 cd $ROOTDIR
 # rm -rf dist
-# mkdir dist
+if [ ! -d dist ] ; then
+  mkdir dist
+fi
 
 cp index.html unicornSandbox.html dist
 cp -r vendor dist
@@ -45,6 +47,7 @@ compileOne() {
     return
   fi
   echo "Transpiling files in $1 ..."
+  mkdir -p $DIST/`dirname $1`
   (
     cd $1
     for f in `find . -name '*.js'` ; do
@@ -57,7 +60,7 @@ compileOne() {
       curl -s "-HX-Module-Name:$1/$mn" --data-binary "@$f" localhost:10062
       echo ""
     done
-  ) > $DIST/`basename $1`-amd.js
+  ) > "$DIST/$1-amd.js"
 }
 
 compile() {
@@ -67,11 +70,13 @@ compile() {
 }
 
 (compileOne unicornlib vendor)
+# (compileOne archetypes vendor)
 compile \
-  archetypes \
   contract \
+  envelope \
   container \
-  unicorn/receipt/whotels/expense/member
+  unicorn/receipt/whotels/expense/member \
+  unicorn/expense-report/basic
 
 kill $NODETS $NODEHB
 
