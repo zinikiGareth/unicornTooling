@@ -1,13 +1,18 @@
 #!/bin/bash -e
 
-if [ $# -lt 1 ] ; then
-  echo "Usage: compileAll.sh <rootdir>" >&2
+if [ $# -lt 2 ] ; then
+  echo "Usage: compileAll.sh <rootdir> <distdir>" >&2
   exit 1
 fi
 
 ROOTDIR=$1
 if [ ! -d "$ROOTDIR" ] ; then
   echo "There is no directory $ROOTDIR" >&2
+  exit 1
+fi
+DISTDIR=$2
+if [ ! -d "`dirname $DISTDIR`" ] ; then
+  echo "There is no base for directory $DISTDIR" >&2
   exit 1
 fi
 
@@ -22,34 +27,34 @@ $NODE_BIN $dir/handlebarsServer &
 NODEHB=$!
 sleep 1
 
-cd $ROOTDIR
-# rm -rf dist
-if [ ! -d dist ] ; then
-  mkdir dist
+# rm -rf $DISTDIR
+if [ ! -d $DISTDIR ] ; then
+  mkdir $DISTDIR
 fi
 
-cp index.html unicornSandbox.html dist
-cp -r vendor dist
+cp $ROOTDIR/index.html $ROOTDIR/unicornSandbox.html $DISTDIR
+cp -r $ROOTDIR/vendor $DISTDIR
 
 compileOne() {
-  DIST=`pwd`/dist
+  DIST=$DISTDIR
+  FROM=$ROOTDIR
   if [ $# -ge 2 ] ; then
-    if [ ! -d "$2" ] ; then
-      echo "There is no directory $2"
+    if [ ! -d "$FROM/$2" ] ; then
+      echo "There is no directory $FROM/$2"
       return
     fi
-    cd "$2"
+    FROM="$FROM/$2"
     DIST="$DIST/$2"
   fi
 
-  if [ ! -d "$1" ] ; then
-    echo "There is no directory $1"
+  if [ ! -d "$FROM/$1" ] ; then
+    echo "There is no directory $FROM/$1"
     return
   fi
-  echo "Transpiling files in $1 ..."
+  echo "Transpiling files in $FROM/$1 ..."
   mkdir -p $DIST/`dirname $1`
   (
-    cd $1
+    cd $FROM/$1
     for f in `find . -name '*.js'` ; do
       mn=`echo $f | sed -e 's%\./%%' -e 's%\.js%%'`
       curl -s "-HX-Module-Name:$1/$mn" --data-binary "@$f" localhost:10061
@@ -76,7 +81,7 @@ compile \
   envelope \
   container \
   unicorn/receipt/whotels/expense/member \
-  unicorn/expense-report/basic
+  unicorn/expenseReport/basic
 
 kill $NODETS $NODEHB
 
